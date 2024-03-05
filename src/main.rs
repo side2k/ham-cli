@@ -1,12 +1,12 @@
 fn main() {
     let connection = sqlite::open("../hamster_test.db").unwrap();
     let query = "
-        select start_time, name
-        from facts
-        left join activities
-        on activities.id=facts.activity_id
-        order by facts.id desc
-        limit 5;
+        SELECT start_time, name, description
+        FROM facts
+        LEFT JOIN activities
+        ON activities.id=facts.activity_id
+        ORDER BY facts.id DESC
+        LIMIT 5;
     ";
     connection
         .iterate(query, |pairs| {
