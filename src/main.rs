@@ -8,12 +8,13 @@ fn main() {
         ORDER BY facts.id DESC
         LIMIT 5;
     ";
-    connection
-        .iterate(query, |pairs| {
-            for &(start_date, name) in pairs.iter() {
-                println!("{} = {}", start_date, name.unwrap());
-            }
-            true
-        })
-        .unwrap();
+
+    fn process_row(pairs: &[(&str, Option<&str>)]) -> bool {
+        for &(name, value) in pairs.iter() {
+            println!("{} = {}", name, value.unwrap());
+        }
+        true
+    }
+
+    connection.iterate(query, process_row).unwrap();
 }
