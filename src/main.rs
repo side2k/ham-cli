@@ -17,14 +17,19 @@ fn main() {
     let mut statement = connection
         .prepare(
             "
-        SELECT start_time, name, description
-        FROM facts
-        LEFT JOIN activities
-        ON activities.id=facts.activity_id
-        ORDER BY facts.id DESC
-        LIMIT 5;
-    ",
+            SELECT start_time, name, description
+            FROM facts
+            LEFT JOIN activities
+            ON activities.id=facts.activity_id
+            WHERE start_time > :start_time
+            ORDER BY facts.id;
+            ",
         )
+        .unwrap();
+    let week_start_str = week_start(Local::now()).format("%Y-%m-%d").to_string();
+
+    statement
+        .bind((":start_time", week_start_str.as_str()))
         .unwrap();
 
     let mut table = Table::new();
