@@ -12,6 +12,11 @@ fn week_start(dt: DateTime<Local>) -> DateTime<Local> {
         .unwrap()
 }
 
+struct FactRecord {
+    name: String,
+    start_time: DateTime<Local>,
+}
+
 fn main() {
     let connection = sqlite::open("../hamster_test.db").unwrap();
     let mut statement = connection
@@ -32,21 +37,27 @@ fn main() {
         .bind((":start_time", week_start_str.as_str()))
         .unwrap();
 
-    let mut table = Table::new();
     let local_tz = Local::now().timezone();
-
-    table.set_header(vec!["start_time", "name"]);
+    let headers: Vec<String> = statement.column_names().to_vec();
+    let mut data: Vec<FactRecord> = vec![];
 
     while let Ok(State::Row) = statement.next() {
-        let fact_name = statement.read::<String, _>("name").unwrap();
-        let start_time_raw = statement.read::<String, _>("start_time").unwrap();
-        let fact_dt = NaiveDateTime::parse_from_str(&start_time_raw, "%Y-%m-%d %H:%M:%S")
+        data.push(FactRecord {
+            name: statement.read::<String, _>("name").unwrap(),
+            start_time: NaiveDateTime::parse_from_str(
+                statement.read::<String, _>("start_time").unwrap().as_str(),
+                "%Y-%m-%d %H:%M:%S",
+            )
             .unwrap()
             .and_local_timezone(local_tz)
-            .unwrap()
-            .to_rfc3339();
-        table.add_row(vec![fact_dt, fact_name]);
+            .unwrap(),
+        });
     }
 
+    let mut table = Table::new();
+    table.set_header(headers);
+    for record in data {
+        table.add_row(vec![record.start_time.to_rfc3339(), record.name]);
+    }
     println!("{table}");
 }
