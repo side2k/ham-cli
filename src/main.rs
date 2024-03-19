@@ -4,7 +4,8 @@ mod hamster;
 mod utils;
 
 fn main() {
-    let facts = hamster::get_facts(utils::week_start(Local::now()));
+    let hamster_data = hamster::HamsterData::open().unwrap();
+    let facts = hamster_data.get_facts(utils::week_start(Local::now()));
     let mut table = Table::new();
     table.set_header(vec!["start time", "name"]);
     for record in facts {
