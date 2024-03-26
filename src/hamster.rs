@@ -45,13 +45,15 @@ impl HamsterData {
             data.push(FactRecord {
                 name: statement.read::<String, _>("name").unwrap(),
 
-                start_time: NaiveDateTime::parse_from_str(
-                    statement.read::<String, _>("start_time").unwrap().as_str(),
-                    "%Y-%m-%d %H:%M:%S",
-                )
-                .unwrap()
-                .and_local_timezone(local_tz)
-                .unwrap(),
+                start_time: {
+                    NaiveDateTime::parse_from_str(
+                        statement.read::<String, _>("start_time").unwrap().as_str(),
+                        "%Y-%m-%d %H:%M:%S",
+                    )
+                    .unwrap()
+                    .and_local_timezone(local_tz)
+                    .unwrap()
+                },
 
                 end_time: {
                     let end_time_raw = statement.read::<Option<String>, _>("end_time").unwrap();
