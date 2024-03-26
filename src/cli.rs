@@ -13,4 +13,5 @@ pub enum Commands {
     Info {},
     /// get facts (last week by default)
     GetFacts {},
+    Tasks {},
 }
