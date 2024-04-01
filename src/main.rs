@@ -1,4 +1,4 @@
-use chrono::Local;
+use chrono::{DateTime, Days, Local};
 use clap::Parser;
 use comfy_table::Table;
 mod cli;
@@ -9,7 +9,7 @@ fn main() {
     let cli_args = cli::Cli::parse();
     match cli_args.command {
         cli::Commands::GetFacts {} => print_last_week_facts(),
-        cli::Commands::Tasks {} => print_tasks(),
+        cli::Commands::Tasks { days } => print_tasks(days),
         _ => {
             println!("This command is not implemented yet")
         }
@@ -27,7 +27,7 @@ fn print_last_week_facts() {
     println!("{table}");
 }
 
-fn print_tasks() {
+fn print_tasks(days: u32) {
     let hamster_data = hamster::HamsterData::open().unwrap();
     let now = Local::now();
     let today = now
@@ -36,7 +36,8 @@ fn print_tasks() {
         .unwrap()
         .and_local_timezone(now.timezone())
         .unwrap();
-    let facts = hamster_data.get_facts(today);
+    let from = today.checked_sub_days(Days::new(days as u64)).unwrap();
+    let facts = hamster_data.get_facts(from);
     let mut table = Table::new();
     table.set_header(vec!["start time", "end_time", "name"]);
     for record in facts {
