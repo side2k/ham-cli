@@ -1,6 +1,8 @@
 use chrono::{DateTime, Days, Local};
 use clap::Parser;
 use comfy_table::Table;
+
+use crate::utils::duration_str;
 mod cli;
 mod hamster;
 mod utils;
@@ -39,15 +41,27 @@ fn print_tasks(days: u32) {
     let from = today.checked_sub_days(Days::new(days as u64)).unwrap();
     let facts = hamster_data.get_facts(from);
     let mut table = Table::new();
-    table.set_header(vec!["start time", "end_time", "name"]);
+    table.set_header(vec!["start time", "end_time", "duration", "name"]);
     for record in facts {
-        let end_time_str = match record.end_time {
-            None => String::from("---"),
-            Some(end_time) => end_time.to_rfc3339(),
+        let end_time: DateTime<Local>;
+
+        let end_time_display = match record.end_time {
+            None => {
+                end_time = Local::now();
+                String::from("---")
+            }
+            Some(end_time_db) => {
+                end_time = end_time_db;
+                end_time_db.to_rfc3339()
+            }
         };
+
+        let duration = (end_time - record.start_time).to_std().unwrap();
+
         table.add_row(vec![
             record.start_time.to_rfc3339(),
-            end_time_str,
+            end_time_display,
+            duration_str(duration),
             record.name,
         ]);
     }
