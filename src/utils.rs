@@ -11,10 +11,19 @@ pub fn week_start(dt: DateTime<Local>) -> DateTime<Local> {
         .unwrap()
 }
 
-pub fn duration_str(duration: Duration) -> String {
-    let minutes_total = duration.as_secs() / 60;
-    let hours = minutes_total / 60;
-    let minutes = minutes_total % 60;
+pub trait DurationFormatting {
+    fn duration_minutes(&self) -> u64;
+    fn as_hhmm(&self) -> String {
+        let minutes_total = self.duration_minutes();
+        let hours = minutes_total / 60;
+        let minutes = minutes_total % 60;
 
-    String::from(format!("{hh}:{mm:02}", hh = hours, mm = minutes))
+        String::from(format!("{hh}:{mm:02}", hh = hours, mm = minutes))
+    }
+}
+
+impl DurationFormatting for Duration {
+    fn duration_minutes(&self) -> u64 {
+        self.as_secs() / 60
+    }
 }

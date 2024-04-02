@@ -2,7 +2,7 @@ use chrono::{DateTime, Days, Local};
 use clap::Parser;
 use comfy_table::Table;
 
-use crate::utils::duration_str;
+use crate::utils::DurationFormatting;
 mod cli;
 mod hamster;
 mod utils;
@@ -61,7 +61,7 @@ fn print_tasks(days: u32) {
         table.add_row(vec![
             record.start_time.to_rfc3339(),
             end_time_display,
-            duration_str(duration),
+            duration.as_hhmm(),
             record.name,
         ]);
     }
