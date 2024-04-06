@@ -1,7 +1,7 @@
 use chrono::{DateTime, Local, NaiveDateTime};
 use sqlite::State;
 
-pub struct FactRecord {
+pub struct HamsterFact {
     pub name: String,
     pub start_time: DateTime<Local>,
     pub end_time: Option<DateTime<Local>>,
@@ -19,7 +19,7 @@ impl HamsterData {
         }
     }
 
-    pub fn get_facts(&self, since: DateTime<Local>) -> Vec<FactRecord> {
+    pub fn get_facts(&self, since: DateTime<Local>) -> Vec<HamsterFact> {
         let mut statement = self
             .connection
             .prepare(
@@ -39,10 +39,10 @@ impl HamsterData {
             .unwrap();
 
         let local_tz = Local::now().timezone();
-        let mut data: Vec<FactRecord> = vec![];
+        let mut data: Vec<HamsterFact> = vec![];
 
         while let Ok(State::Row) = statement.next() {
-            data.push(FactRecord {
+            data.push(HamsterFact {
                 name: statement.read::<String, _>("name").unwrap(),
 
                 start_time: {
