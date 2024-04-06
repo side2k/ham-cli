@@ -18,7 +18,7 @@ pub trait DurationFormatting {
         let hours = minutes_total / 60;
         let minutes = minutes_total % 60;
 
-        String::from(format!("{hh}:{mm:02}", hh = hours, mm = minutes))
+        format!("{hh}:{mm:02}", hh = hours, mm = minutes)
     }
 }
 
