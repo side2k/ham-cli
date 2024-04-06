@@ -53,3 +53,18 @@ impl MarkdownProcessing for Node {
         }
     }
 }
+
+pub trait LinkText {
+    fn text(&self) -> String;
+}
+
+impl LinkText for Link {
+    fn text(&self) -> String {
+        self.children
+            .iter()
+            .fold(String::new(), |acc, node| match node {
+                Node::Text(text) => acc + &String::from(&text.value),
+                _ => String::new(),
+            })
+    }
+}
