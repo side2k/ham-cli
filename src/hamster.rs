@@ -5,6 +5,7 @@ pub struct HamsterFact {
     pub name: String,
     pub start_time: DateTime<Local>,
     pub end_time: Option<DateTime<Local>>,
+    pub description: String,
 }
 
 pub struct HamsterData {
@@ -44,6 +45,7 @@ impl HamsterData {
         while let Ok(State::Row) = statement.next() {
             data.push(HamsterFact {
                 name: statement.read::<String, _>("name").unwrap(),
+                description: statement.read::<String, _>("description").unwrap(),
 
                 start_time: {
                     NaiveDateTime::parse_from_str(
