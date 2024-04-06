@@ -1,4 +1,5 @@
 use chrono::{DateTime, Datelike, Days, Local};
+use markdown::mdast::{Link, Node};
 use std::time::Duration;
 
 pub fn week_start(dt: DateTime<Local>) -> DateTime<Local> {
@@ -25,5 +26,30 @@ pub trait DurationFormatting {
 impl DurationFormatting for Duration {
     fn duration_minutes(&self) -> u64 {
         self.as_secs() / 60
+    }
+}
+
+pub trait MarkdownProcessing {
+    fn flatten_tree(&self) -> Vec<&Node>;
+    fn links(&self) -> Vec<&Link> {
+        self.flatten_tree()
+            .into_iter()
+            .filter_map(|node| match node {
+                Node::Link(link) => Some(link),
+                _ => None,
+            })
+            .collect()
+    }
+}
+
+impl MarkdownProcessing for Node {
+    fn flatten_tree(&self) -> Vec<&Node> {
+        match self.children() {
+            None => vec![self],
+            Some(children) => vec![self]
+                .into_iter()
+                .chain(children.iter().flat_map(|child| child.flatten_tree()))
+                .collect(),
+        }
     }
 }
