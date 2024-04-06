@@ -22,9 +22,27 @@ fn print_last_week_facts() {
     let hamster_data = hamster::HamsterData::open().unwrap();
     let facts = hamster_data.get_facts(utils::week_start(Local::now()));
     let mut table = Table::new();
-    table.set_header(vec!["start time", "name"]);
+    table.set_header(vec!["start time", "end_time", "duration", "name"]);
     for record in facts {
-        table.add_row(vec![record.start_time.to_rfc3339(), record.name]);
+        let end_time: DateTime<Local>;
+        let end_time_display = match record.end_time {
+            None => {
+                end_time = Local::now();
+                String::from("---")
+            }
+            Some(end_time_db) => {
+                end_time = end_time_db;
+                end_time_db.to_rfc3339()
+            }
+        };
+        let duration = (end_time - record.start_time).to_std().unwrap();
+
+        table.add_row(vec![
+            record.start_time.to_rfc3339(),
+            end_time_display,
+            duration.as_hhmm(),
+            record.name,
+        ]);
     }
     println!("{table}");
 }
