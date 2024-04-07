@@ -82,8 +82,7 @@ fn print_tasks(days: u32) {
 
     let mut table = Table::new();
     table.set_header(vec!["duration", "task"]);
-    for task_title in tasks.keys() {
-        let duration = tasks.get(task_title).unwrap();
+    for (task_title, duration) in tasks.iter() {
         table.add_row(vec![task_title.clone(), duration.as_hhmm()]);
     }
     println!("{table}");
