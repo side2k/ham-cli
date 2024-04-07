@@ -25,7 +25,7 @@ fn print_last_week_facts() {
     let hamster_data = hamster::HamsterData::open().unwrap();
     let facts = hamster_data.get_facts(utils::week_start(Local::now()));
     let mut table = Table::new();
-    table.set_header(vec!["start time", "end_time", "duration", "name"]);
+    table.set_header(["start time", "end_time", "duration", "name"]);
     for record in facts {
         let end_time: DateTime<Local>;
         let end_time_display = match record.end_time {
@@ -40,7 +40,7 @@ fn print_last_week_facts() {
         };
         let duration = (end_time - record.start_time).to_std().unwrap();
 
-        table.add_row(vec![
+        table.add_row([
             record.start_time.to_rfc3339(),
             end_time_display,
             duration.as_hhmm(),
@@ -81,9 +81,9 @@ fn print_tasks(days: u32) {
     }
 
     let mut table = Table::new();
-    table.set_header(vec!["duration", "task"]);
+    table.set_header(["duration", "task"]);
     for (task_title, duration) in tasks.iter() {
-        table.add_row(vec![task_title.clone(), duration.as_hhmm()]);
+        table.add_row([task_title.clone(), duration.as_hhmm()]);
     }
     println!("{table}");
 }
