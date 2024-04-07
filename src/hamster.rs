@@ -58,20 +58,14 @@ impl HamsterData {
                 },
 
                 end_time: {
-                    let end_time_raw = statement.read::<Option<String>, _>("end_time").unwrap();
+                    let end_time_raw = statement.read::<Option<String>, _>("end_time");
 
-                    match end_time_raw {
-                        Some(end_time_str) => Some(
-                            NaiveDateTime::parse_from_str(
-                                end_time_str.as_str(),
-                                "%Y-%m-%d %H:%M:%S",
-                            )
+                    end_time_raw.unwrap().map(|end_time_str| {
+                        NaiveDateTime::parse_from_str(end_time_str.as_str(), "%Y-%m-%d %H:%M:%S")
                             .unwrap()
                             .and_local_timezone(local_tz)
-                            .unwrap(),
-                        ),
-                        None => None,
-                    }
+                            .unwrap()
+                    })
                 },
             });
         }

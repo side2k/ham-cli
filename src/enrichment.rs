@@ -17,14 +17,14 @@ impl HamsterEnrichedData for HamsterFact {
             markdown::to_mdast(&self.description, &ParseOptions::default()).unwrap();
         let links = markdown_root.links();
 
-        if links.len() > 0 {
+        if links.is_empty() {
+            None
+        } else {
             let link = links[0];
             Some(TaskLink {
                 link_title: link.text(),
                 href: link.url.clone(),
             })
-        } else {
-            None
         }
     }
 }

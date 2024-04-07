@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
 
 use chrono::{DateTime, Days, Local};
 use clap::Parser;
@@ -65,19 +65,17 @@ fn print_tasks(days: u32) {
     let mut tasks = HashMap::new();
 
     for record in facts {
-        let end_time = match record.end_time {
-            Some(dt) => dt,
-            None => Local::now(),
-        };
+        let end_time = record.end_time.unwrap_or(Local::now());
         let duration = (end_time - record.start_time).to_std().unwrap();
 
-        let task_key = match record.task() {
-            Some(task_link) => task_link.link_title,
-            None => String::from("-"),
-        };
+        let task_key = record
+            .task()
+            .map_or(String::from("-"), |task_link| task_link.link_title);
 
-        let task_duration = tasks.entry(task_key).or_insert(Duration::new(0, 0));
-        *task_duration += duration;
+        tasks
+            .entry(task_key)
+            .and_modify(|task_duration| *task_duration += duration)
+            .or_insert(duration);
     }
 
     let mut table = Table::new();
