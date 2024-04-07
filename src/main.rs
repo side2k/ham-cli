@@ -1,3 +1,5 @@
+use std::{collections::HashMap, time::Duration};
+
 use chrono::{DateTime, Days, Local};
 use clap::Parser;
 use comfy_table::Table;
@@ -59,8 +61,9 @@ fn print_tasks(days: u32) {
         .unwrap();
     let from = today.checked_sub_days(Days::new(days as u64)).unwrap();
     let facts = hamster_data.get_facts(from);
-    let mut table = Table::new();
-    table.set_header(vec!["date", "duration", "task"]);
+
+    let mut tasks = HashMap::new();
+
     for record in facts {
         let end_time = match record.end_time {
             Some(dt) => dt,
@@ -68,14 +71,20 @@ fn print_tasks(days: u32) {
         };
         let duration = (end_time - record.start_time).to_std().unwrap();
 
-        table.add_row(vec![
-            record.start_time.format("%Y-%m-%d").to_string(),
-            duration.as_hhmm(),
-            match record.task() {
-                Some(task_link) => task_link.link_title,
-                None => String::from("-"),
-            },
-        ]);
+        let task_key = match record.task() {
+            Some(task_link) => task_link.link_title,
+            None => String::from("-"),
+        };
+
+        let task_duration = tasks.entry(task_key).or_insert(Duration::new(0, 0));
+        *task_duration += duration;
+    }
+
+    let mut table = Table::new();
+    table.set_header(vec!["duration", "task"]);
+    for task_title in tasks.keys() {
+        let duration = tasks.get(task_title).unwrap();
+        table.add_row(vec![task_title.clone(), duration.as_hhmm()]);
     }
     println!("{table}");
 }
