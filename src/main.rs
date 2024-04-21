@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use chrono::{DateTime, Days, Local, NaiveDate};
 use clap::Parser;
 use comfy_table::Table;
+use std::time::Duration;
 
 use crate::{enrichment::HamsterEnrichedData, utils::DurationFormatting};
 mod cli;
@@ -52,19 +53,11 @@ fn print_last_week_facts() {
     println!("{table}");
 }
 
-fn print_tasks(from: Option<NaiveDate>, to: Option<NaiveDate>) {
+fn get_tasks_with_durations(from: NaiveDate, to: NaiveDate) -> HashMap<String, (String, Duration)> {
     let hamster_data = hamster::HamsterData::open().unwrap();
     let now = Local::now();
     let timezone = now.timezone();
 
-    let from = match from {
-        Some(from) => from,
-        None => now.date_naive(),
-    };
-    let to = match to {
-        Some(to) => to,
-        None => now.checked_add_days(Days::new(1)).unwrap().date_naive(),
-    };
     let facts = hamster_data.get_facts(
         from.and_hms_opt(0, 0, 0)
             .unwrap()
@@ -76,7 +69,7 @@ fn print_tasks(from: Option<NaiveDate>, to: Option<NaiveDate>) {
             .unwrap(),
     );
 
-    let mut tasks = HashMap::new();
+    let mut tasks: HashMap<String, (String, Duration)> = HashMap::new();
 
     for record in facts {
         let end_time = record.end_time.unwrap_or(Local::now());
@@ -96,11 +89,29 @@ fn print_tasks(from: Option<NaiveDate>, to: Option<NaiveDate>) {
             .and_modify(|(_, task_duration)| *task_duration += duration)
             .or_insert((title, duration));
     }
+    tasks
+}
+
+fn print_tasks(from: Option<NaiveDate>, to: Option<NaiveDate>) {
+    let now = Local::now();
+
+    let from = match from {
+        Some(from) => from,
+        None => now.date_naive(),
+    };
+    let to = match to {
+        Some(to) => to,
+        None => now.checked_add_days(Days::new(1)).unwrap().date_naive(),
+    };
+    let tasks = get_tasks_with_durations(from, to);
+    let mut total_duration = Duration::new(0, 0);
 
     let mut table = Table::new();
     table.set_header(["Task ID", "name", "duration"]);
     for (task_id, (task_title, duration)) in tasks.into_iter() {
+        total_duration += duration;
         table.add_row([task_id, task_title, duration.as_hhmm()]);
     }
+    table.add_row(["", "", total_duration.as_hhmm().as_str()]);
     println!("{table}");
 }
