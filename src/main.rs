@@ -47,7 +47,7 @@ fn print_last_week_facts() {
             record.start_time.to_rfc3339(),
             end_time_display,
             duration.as_hhmm(),
-            record.name,
+            record.activity,
         ]);
     }
     println!("{table}");

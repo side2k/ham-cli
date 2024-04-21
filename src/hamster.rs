@@ -2,10 +2,11 @@ use chrono::{DateTime, Local, NaiveDateTime};
 use sqlite::State;
 
 pub struct HamsterFact {
-    pub name: String,
     pub start_time: DateTime<Local>,
     pub end_time: Option<DateTime<Local>>,
     pub description: String,
+    pub activity: String,
+    pub category: String,
 }
 
 pub struct HamsterData {
@@ -25,10 +26,14 @@ impl HamsterData {
             .connection
             .prepare(
                 "
-                SELECT start_time, end_time, name, description
+                SELECT
+                    start_time, end_time, activities.name as `activity_name`, description,
+                    categories.name as `category_name`
                 FROM facts
                 LEFT JOIN activities
-                ON activities.id=facts.activity_id
+                    ON activities.id=facts.activity_id
+                LEFT JOIN categories
+                    ON categories.id=activities.category_id
                 WHERE
                     start_time >= :start_time
                     AND end_time < :end_time
@@ -51,8 +56,9 @@ impl HamsterData {
 
         while let Ok(State::Row) = statement.next() {
             data.push(HamsterFact {
-                name: statement.read::<String, _>("name").unwrap(),
                 description: statement.read::<String, _>("description").unwrap(),
+                category: statement.read::<String, _>("category_name").unwrap(),
+                activity: statement.read::<String, _>("activity_name").unwrap(),
 
                 start_time: {
                     NaiveDateTime::parse_from_str(
