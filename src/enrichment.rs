@@ -1,10 +1,12 @@
 use crate::hamster::HamsterFact;
 use crate::utils::{LinkText, MarkdownProcessing};
 use markdown::ParseOptions;
+use regex::Regex;
 
 pub struct TaskLink {
     pub link_title: String,
     pub href: String,
+    pub task_id: String,
 }
 
 pub trait HamsterEnrichedData {
@@ -24,6 +26,11 @@ impl HamsterEnrichedData for HamsterFact {
             Some(TaskLink {
                 link_title: link.text(),
                 href: link.url.clone(),
+                task_id: Regex::new(r"\/(?<task_id>\d+)\/f")
+                    .unwrap()
+                    .captures(link.url.as_str())
+                    .unwrap()["task_id"]
+                    .to_string(),
             })
         }
     }
