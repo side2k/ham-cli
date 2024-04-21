@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Days, Local};
+use chrono::{DateTime, Days, Local, NaiveDate};
 use clap::Parser;
 use comfy_table::Table;
 
@@ -14,7 +14,7 @@ fn main() {
     let cli_args = cli::Cli::parse();
     match cli_args.command {
         cli::Commands::GetFacts {} => print_last_week_facts(),
-        cli::Commands::Tasks { days } => print_tasks(days),
+        cli::Commands::Tasks { from, to } => print_tasks(from, to),
         _ => {
             println!("This command is not implemented yet")
         }
@@ -23,7 +23,9 @@ fn main() {
 
 fn print_last_week_facts() {
     let hamster_data = hamster::HamsterData::open().unwrap();
-    let facts = hamster_data.get_facts(utils::week_start(Local::now()));
+    let week_start = utils::week_start(Local::now());
+    let week_end = week_start.checked_add_days(Days::new(7)).unwrap();
+    let facts = hamster_data.get_facts(week_start, week_end);
     let mut table = Table::new();
     table.set_header(["start time", "end_time", "duration", "name"]);
     for record in facts {
@@ -50,17 +52,29 @@ fn print_last_week_facts() {
     println!("{table}");
 }
 
-fn print_tasks(days: u32) {
+fn print_tasks(from: Option<NaiveDate>, to: Option<NaiveDate>) {
     let hamster_data = hamster::HamsterData::open().unwrap();
     let now = Local::now();
-    let today = now
-        .date_naive()
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .and_local_timezone(now.timezone())
-        .unwrap();
-    let from = today.checked_sub_days(Days::new(days as u64)).unwrap();
-    let facts = hamster_data.get_facts(from);
+    let timezone = now.timezone();
+
+    let from = match from {
+        Some(from) => from,
+        None => now.date_naive(),
+    };
+    let to = match to {
+        Some(to) => to,
+        None => now.checked_add_days(Days::new(1)).unwrap().date_naive(),
+    };
+    let facts = hamster_data.get_facts(
+        from.and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_local_timezone(timezone)
+            .unwrap(),
+        to.and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_local_timezone(timezone)
+            .unwrap(),
+    );
 
     let mut tasks = HashMap::new();
 
@@ -68,20 +82,25 @@ fn print_tasks(days: u32) {
         let end_time = record.end_time.unwrap_or(Local::now());
         let duration = (end_time - record.start_time).to_std().unwrap();
 
-        let task_key = record
-            .task()
-            .map_or(String::from("-"), |task_link| task_link.link_title);
+        let task_id = match record.task() {
+            None => String::from("-"),
+            Some(task_link) => task_link.task_id,
+        };
+        let title = match record.task() {
+            None => String::from("-"),
+            Some(task_link) => task_link.link_title,
+        };
 
         tasks
-            .entry(task_key)
-            .and_modify(|task_duration| *task_duration += duration)
-            .or_insert(duration);
+            .entry(task_id)
+            .and_modify(|(_, task_duration)| *task_duration += duration)
+            .or_insert((title, duration));
     }
 
     let mut table = Table::new();
-    table.set_header(["duration", "task"]);
-    for (task_title, duration) in tasks.into_iter() {
-        table.add_row([task_title, duration.as_hhmm()]);
+    table.set_header(["Task ID", "name", "duration"]);
+    for (task_id, (task_title, duration)) in tasks.into_iter() {
+        table.add_row([task_id, task_title, duration.as_hhmm()]);
     }
     println!("{table}");
 }

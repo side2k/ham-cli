@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -14,7 +15,8 @@ pub enum Commands {
     /// get facts (last week by default)
     GetFacts {},
     Tasks {
-        #[arg(short, long, default_value_t = 1)]
-        days: u32,
+        #[arg(long)]
+        from: Option<NaiveDate>,
+        to: Option<NaiveDate>,
     },
 }

@@ -20,7 +20,7 @@ impl HamsterData {
         }
     }
 
-    pub fn get_facts(&self, since: DateTime<Local>) -> Vec<HamsterFact> {
+    pub fn get_facts(&self, from: DateTime<Local>, to: DateTime<Local>) -> Vec<HamsterFact> {
         let mut statement = self
             .connection
             .prepare(
@@ -29,14 +29,21 @@ impl HamsterData {
                 FROM facts
                 LEFT JOIN activities
                 ON activities.id=facts.activity_id
-                WHERE start_time > :start_time
+                WHERE
+                    start_time >= :start_time
+                    AND end_time < :end_time
                 ORDER BY facts.id;
                 ",
             )
             .unwrap();
 
         statement
-            .bind((":start_time", since.format("%Y-%m-%d").to_string().as_str()))
+            .bind(
+                &[
+                    (":start_time", from.format("%Y-%m-%d").to_string().as_str()),
+                    (":end_time", to.format("%Y-%m-%d").to_string().as_str()),
+                ][..],
+            )
             .unwrap();
 
         let local_tz = Local::now().timezone();
