@@ -92,14 +92,20 @@ fn get_tasks_with_durations(
         let end_time = record.end_time.unwrap_or(Local::now());
         let duration = (end_time - record.start_time).to_std().unwrap();
 
-        let task_id = match record.task() {
-            None => None,
-            Some(task_link) => Some(task_link.task_id),
-        };
-        let title = match record.task() {
-            None => None,
-            Some(task_link) => Some(task_link.link_title),
-        };
+        let task_id: Option<String>;
+        let title: Option<String>;
+
+        if let Some(task_link) = record.task() {
+            task_id = Some(task_link.task_id);
+            title = Some(task_link.link_title);
+        } else {
+            task_id = None;
+            title = None;
+            println!(
+                "Error obtaining task id from fact {} ({}@{} - {})",
+                record.id, record.activity, record.category, record.description
+            )
+        }
 
         tasks
             .entry(task_id)
