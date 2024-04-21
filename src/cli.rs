@@ -19,5 +19,6 @@ pub enum Commands {
         from: Option<NaiveDate>,
         #[arg(long)]
         to: Option<NaiveDate>,
+        category: Option<String>,
     },
 }

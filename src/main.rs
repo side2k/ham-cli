@@ -11,11 +11,14 @@ mod enrichment;
 mod hamster;
 mod utils;
 
-fn main() {
+use everhour_simple_client::client::Client as EverhourClient;
+
+#[tokio::main]
+async fn main() {
     let cli_args = cli::Cli::parse();
     match cli_args.command {
         cli::Commands::GetFacts {} => print_last_week_facts(),
-        cli::Commands::Tasks { from, to } => print_tasks(from, to),
+        cli::Commands::Tasks { from, to, category } => print_tasks(from, to, category),
         _ => {
             println!("This command is not implemented yet")
         }
@@ -53,7 +56,11 @@ fn print_last_week_facts() {
     println!("{table}");
 }
 
-fn get_tasks_with_durations(from: NaiveDate, to: NaiveDate) -> HashMap<String, (String, Duration)> {
+fn get_tasks_with_durations(
+    from: NaiveDate,
+    to: NaiveDate,
+    category: Option<String>,
+) -> HashMap<String, (String, Duration)> {
     let hamster_data = hamster::HamsterData::open().unwrap();
     let now = Local::now();
     let timezone = now.timezone();
@@ -68,6 +75,14 @@ fn get_tasks_with_durations(from: NaiveDate, to: NaiveDate) -> HashMap<String, (
             .and_local_timezone(timezone)
             .unwrap(),
     );
+
+    let facts = match category {
+        None => facts,
+        Some(category) => facts
+            .into_iter()
+            .filter(|fact| fact.category == category)
+            .collect(),
+    };
 
     let mut tasks: HashMap<String, (String, Duration)> = HashMap::new();
 
@@ -92,7 +107,7 @@ fn get_tasks_with_durations(from: NaiveDate, to: NaiveDate) -> HashMap<String, (
     tasks
 }
 
-fn print_tasks(from: Option<NaiveDate>, to: Option<NaiveDate>) {
+fn print_tasks(from: Option<NaiveDate>, to: Option<NaiveDate>, category: Option<String>) {
     let now = Local::now();
 
     let from = match from {
@@ -103,7 +118,7 @@ fn print_tasks(from: Option<NaiveDate>, to: Option<NaiveDate>) {
         Some(to) => to,
         None => now.checked_add_days(Days::new(1)).unwrap().date_naive(),
     };
-    let tasks = get_tasks_with_durations(from, to);
+    let tasks = get_tasks_with_durations(from, to, category);
     let mut total_duration = Duration::new(0, 0);
 
     let mut table = Table::new();
