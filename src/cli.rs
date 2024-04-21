@@ -21,4 +21,15 @@ pub enum Commands {
         to: Option<NaiveDate>,
         category: Option<String>,
     },
+    SyncTasksToEverhour {
+        category: Option<String>,
+        #[arg(long, env = "EVERHOUR_API_TOKEN")]
+        api_token: String,
+        #[arg(long)]
+        from: NaiveDate,
+        #[arg(long)]
+        to: NaiveDate,
+        #[arg(long, default_value_t = false)]
+        dry_run: bool,
+    },
 }

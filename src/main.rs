@@ -12,6 +12,7 @@ mod hamster;
 mod utils;
 
 use everhour_simple_client::client::Client as EverhourClient;
+use everhour_simple_client::time_record::TimeRecord;
 
 #[tokio::main]
 async fn main() {
@@ -19,6 +20,13 @@ async fn main() {
     match cli_args.command {
         cli::Commands::GetFacts {} => print_last_week_facts(),
         cli::Commands::Tasks { from, to, category } => print_tasks(from, to, category),
+        cli::Commands::SyncTasksToEverhour {
+            api_token,
+            from,
+            to,
+            category,
+            dry_run,
+        } => sync_tasks_to_everhour(api_token, from, to, category, dry_run).await,
         _ => {
             println!("This command is not implemented yet")
         }
@@ -141,4 +149,72 @@ fn print_tasks(from: Option<NaiveDate>, to: Option<NaiveDate>, category: Option<
     }
     table.add_row(["", "", total_duration.as_hhmm().as_str()]);
     println!("{table}");
+}
+
+async fn sync_tasks_to_everhour(
+    api_token: String,
+    from: NaiveDate,
+    to: NaiveDate,
+    category: Option<String>,
+    dry_run: bool,
+) {
+    let client = EverhourClient::new(api_token);
+    let me = client.get_current_user().await.unwrap();
+
+    let mut day = from;
+    while day <= to {
+        println!("Processing day {}", day);
+        let next_day = day.checked_add_days(Days::new(1)).unwrap();
+        let tasks = get_tasks_with_durations(day, next_day, category.clone());
+        let mut total_duration = Duration::new(0, 0);
+        for (task_id, (task_title, duration)) in tasks.into_iter() {
+            let task_id_eh = match &task_id {
+                Some(task_id) => format!("as:{task_id}"),
+                None => {
+                    if dry_run {
+                        "-".to_string()
+                    } else {
+                        panic!("Missing task id!");
+                    }
+                }
+            };
+            total_duration += duration;
+            let action = match task_id {
+                None => "would not(!) add ",
+                Some(_) => {
+                    if dry_run {
+                        "would add"
+                    } else {
+                        "adding"
+                    }
+                }
+            };
+            let msg = format!(
+                "{day}: {action} {} seconds for user {} on task {} ({})",
+                duration.as_secs(),
+                me.id,
+                task_id_eh,
+                task_title.unwrap_or("-".to_string())
+            );
+            if dry_run {
+                println!("{msg}");
+            } else {
+                client
+                    .add_task_time_record(
+                        task_id_eh,
+                        TimeRecord::for_adding(day, me.id, duration.as_secs() as i64, None),
+                    )
+                    .await
+                    .unwrap();
+            }
+        }
+        println!(
+            "Total seconds for day: {} ({})",
+            total_duration.as_secs(),
+            total_duration.as_hhmm()
+        );
+
+        day = next_day;
+    }
+    println!("Everhour user id: {}", me.id);
 }
