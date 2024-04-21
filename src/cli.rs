@@ -17,6 +17,7 @@ pub enum Commands {
     Tasks {
         #[arg(long)]
         from: Option<NaiveDate>,
+        #[arg(long)]
         to: Option<NaiveDate>,
     },
 }
