@@ -7,9 +7,10 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4.38"
-clap = { version = "4.5.1", features = ["derive"] }
+clap = { version = "4.5.1", features = ["derive", "env"] }
 comfy-table = "7.1.0"
 everhour-simple-client = { git = "https://github.com/side2k/everhour-simple-client", version = "0.1.0" }
 markdown = "1.0.0-alpha.16"
 regex = "1.10.4"
 sqlite = "0.34.0"
+tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
