@@ -56,11 +56,13 @@ fn print_last_week_facts() {
     println!("{table}");
 }
 
+type TasksWithDurations = HashMap<Option<String>, (Option<String>, Duration)>;
+
 fn get_tasks_with_durations(
     from: NaiveDate,
     to: NaiveDate,
     category: Option<String>,
-) -> HashMap<String, (String, Duration)> {
+) -> TasksWithDurations {
     let hamster_data = hamster::HamsterData::open().unwrap();
     let now = Local::now();
     let timezone = now.timezone();
@@ -84,19 +86,19 @@ fn get_tasks_with_durations(
             .collect(),
     };
 
-    let mut tasks: HashMap<String, (String, Duration)> = HashMap::new();
+    let mut tasks: TasksWithDurations = HashMap::new();
 
     for record in facts {
         let end_time = record.end_time.unwrap_or(Local::now());
         let duration = (end_time - record.start_time).to_std().unwrap();
 
         let task_id = match record.task() {
-            None => String::from("-"),
-            Some(task_link) => task_link.task_id,
+            None => None,
+            Some(task_link) => Some(task_link.task_id),
         };
         let title = match record.task() {
-            None => String::from("-"),
-            Some(task_link) => task_link.link_title,
+            None => None,
+            Some(task_link) => Some(task_link.link_title),
         };
 
         tasks
@@ -125,7 +127,11 @@ fn print_tasks(from: Option<NaiveDate>, to: Option<NaiveDate>, category: Option<
     table.set_header(["Task ID", "name", "duration"]);
     for (task_id, (task_title, duration)) in tasks.into_iter() {
         total_duration += duration;
-        table.add_row([task_id, task_title, duration.as_hhmm()]);
+        table.add_row([
+            task_id.unwrap_or("-".to_string()),
+            task_title.unwrap_or("-".to_string()),
+            duration.as_hhmm(),
+        ]);
     }
     table.add_row(["", "", total_duration.as_hhmm().as_str()]);
     println!("{table}");
