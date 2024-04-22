@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local, NaiveDateTime};
+use chrono::{DateTime, Local, NaiveDate, NaiveDateTime};
 use sqlite::State;
 use std::path::Path;
 
@@ -39,7 +39,7 @@ impl HamsterData {
         }
     }
 
-    pub fn get_facts(&self, from: DateTime<Local>, to: DateTime<Local>) -> Vec<HamsterFact> {
+    pub fn get_facts(&self, from: NaiveDate, to: NaiveDate) -> Vec<HamsterFact> {
         let mut statement = self
             .connection
             .prepare(
@@ -57,8 +57,8 @@ impl HamsterData {
                 LEFT JOIN categories
                     ON categories.id=activities.category_id
                 WHERE
-                    start_time >= :start_time
-                    AND end_time < :end_time
+                    start_time >= :from
+                    AND start_time < :to
                 ORDER BY facts.id;
                 ",
             )
@@ -67,8 +67,8 @@ impl HamsterData {
         statement
             .bind(
                 &[
-                    (":start_time", from.format("%Y-%m-%d").to_string().as_str()),
-                    (":end_time", to.format("%Y-%m-%d").to_string().as_str()),
+                    (":from", from.to_string().as_str()),
+                    (":to", to.to_string().as_str()),
                 ][..],
             )
             .unwrap();
