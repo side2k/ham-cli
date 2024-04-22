@@ -106,7 +106,7 @@ fn get_tasks_with_durations(
     let mut tasks: TasksWithDurations = HashMap::new();
 
     for record in facts {
-        let end_time = record.end_time.unwrap_or(Local::now());
+        let end_time = record.end_time.unwrap_or_else(|| Local::now());
         let duration = (end_time - record.start_time).to_std().unwrap();
 
         let task_id: Option<String>;
