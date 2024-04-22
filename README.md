@@ -17,3 +17,13 @@ For [adding time record entry in Everhour](https://everhour.docs.apiary.io/#refe
 - `user` - current user, obtained by [relevant API](https://everhour.docs.apiary.io/#reference/0/users/get-current-user) call
 - `time` - time in seconds, calculated by the task duration, i.e. `end_time` - `start_time`. If end time is not defined, current time is used
 - `date` - date of the task. Currently, tasks that span for more than 1 day, are not processed properly!
+
+
+Basic example of running the sync:
+```
+ham-cli sync-eh Work
+```
+…will sync tasks of `Work` category for today. The command above assumes that:
+
+- Hamster database is located in `$HOME/.local/share/hamster/hamster.db`
+- Everhour API token is set in `EVERHOUR_API_TOKEN` env variable (see above)
