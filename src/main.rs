@@ -164,6 +164,22 @@ async fn sync_tasks_to_everhour(
 ) {
     let client = EverhourClient::new(api_token);
     let me = client.get_current_user().await.unwrap();
+    let existing_time_records = client
+        .get_user_time_records(me.id, Some(from), Some(to))
+        .await
+        .unwrap();
+
+    // sort existing time records into map by day/id pair
+    let mut records_map: HashMap<(NaiveDate, String), TimeRecord> = HashMap::new();
+
+    for time_record in existing_time_records.into_iter() {
+        records_map
+            .entry((
+                time_record.date,
+                time_record.task.as_ref().unwrap().id.clone(),
+            ))
+            .or_insert(time_record);
+    }
 
     let mut day = from;
     while day <= to {
@@ -182,36 +198,58 @@ async fn sync_tasks_to_everhour(
                     }
                 }
             };
+
             total_duration += duration;
-            let action = match task_id {
-                None => "would not(!) add ",
-                Some(_) => {
-                    if dry_run {
-                        "would add"
-                    } else {
-                        "adding"
-                    }
-                }
-            };
-            let msg = format!(
-                "{day}: {action} {} seconds for user {} on task {} ({})",
+
+            if task_id.is_none() {
+                // no task id - not enough data to add anything
+                continue;
+            }
+
+            let data_msg = format!(
+                "{day}: {} seconds ({}) for user {} on task {} ({})",
                 duration.as_secs(),
+                duration.as_hhmm(),
                 me.id,
                 task_id_eh,
                 task_title.unwrap_or("-".to_string())
             );
-            if dry_run {
-                println!("{msg}");
-            } else {
-                client
-                    .add_task_time_record(
-                        task_id_eh,
-                        TimeRecord::for_adding(day, me.id, duration.as_secs() as i64, None),
+            let existing_record = records_map.get(&(day, task_id_eh.clone()));
+
+            match (existing_record, dry_run) {
+                (Some(existing_record), true) => {
+                    println!(
+                        "would sync to record {} - {data_msg}",
+                        existing_record.id.unwrap()
                     )
-                    .await
-                    .unwrap();
-            }
+                }
+                (None, true) => println!("would add new  record - {data_msg}"),
+                (Some(existing_record), false) => {
+                    println!(
+                        "syncing to record {} - {data_msg}",
+                        existing_record.id.unwrap()
+                    );
+                    client
+                        .update_task_time_record(
+                            task_id_eh,
+                            TimeRecord::for_adding(day, me.id, duration.as_secs() as i64, None),
+                        )
+                        .await
+                        .unwrap();
+                }
+                (None, false) => {
+                    println!("adding - {data_msg}");
+                    client
+                        .add_task_time_record(
+                            task_id_eh,
+                            TimeRecord::for_adding(day, me.id, duration.as_secs() as i64, None),
+                        )
+                        .await
+                        .unwrap();
+                }
+            };
         }
+
         println!(
             "Total seconds for day: {} ({})",
             total_duration.as_secs(),
