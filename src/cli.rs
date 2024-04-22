@@ -32,9 +32,9 @@ pub enum Commands {
         #[arg(long, env = "EVERHOUR_API_TOKEN")]
         api_token: String,
         #[arg(long)]
-        from: NaiveDate,
+        from: Option<NaiveDate>,
         #[arg(long)]
-        to: NaiveDate,
+        to: Option<NaiveDate>,
         #[arg(long, default_value_t = false)]
         dry_run: bool,
     },
