@@ -25,6 +25,8 @@ pub enum Commands {
         to: Option<NaiveDate>,
         category: Option<String>,
     },
+    /// Synchronize task records to Everhour
+    #[command(name = "sync-eh")]
     SyncTasksToEverhour {
         category: Option<String>,
         #[arg(long, env = "EVERHOUR_API_TOKEN")]
