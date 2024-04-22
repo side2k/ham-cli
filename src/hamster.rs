@@ -1,5 +1,6 @@
 use chrono::{DateTime, Local, NaiveDateTime};
 use sqlite::State;
+use std::path::Path;
 
 pub struct HamsterFact {
     pub id: i64,
@@ -15,8 +16,24 @@ pub struct HamsterData {
 }
 
 impl HamsterData {
-    pub fn open() -> Result<HamsterData, String> {
-        match sqlite::open("../hamster_test.db") {
+    pub fn open(db_path: Option<String>) -> Result<HamsterData, String> {
+        let db_path: String = match db_path {
+            Some(db_path) => db_path,
+            None => match std::env::var("HOME") {
+                Ok(home) => String::from(
+                    Path::new(home.as_str())
+                        .join(".local/share/hamster/hamster.db")
+                        .to_str()
+                        .unwrap(),
+                ),
+                Err(_) => {
+                    return Err(String::from(
+                        "Hamster database path wasn't supplied, $HOME is not set - I give up",
+                    ))
+                }
+            },
+        };
+        match sqlite::open(db_path) {
             Ok(connection) => Ok(HamsterData { connection }),
             Err(hamster_error) => Err(format!("couldn't open hamster db: {}", hamster_error)),
         }
