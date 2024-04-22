@@ -31,7 +31,7 @@ async fn main() {
         } => {
             let today = chrono::Local::now().date_naive();
             let from: NaiveDate = from.unwrap_or(today);
-            let to: NaiveDate = to.unwrap_or(today.clone().checked_add_days(Days::new(1)).unwrap());
+            let to: NaiveDate = to.unwrap_or(from.clone());
             sync_tasks_to_everhour(cli_args.hamster_db, api_token, from, to, category, dry_run)
                 .await
         }
