@@ -18,23 +18,28 @@ use everhour_simple_client::time_record::TimeRecord;
 async fn main() {
     let cli_args = cli::Cli::parse();
     match cli_args.command {
-        cli::Commands::GetFacts {} => print_last_week_facts(),
-        cli::Commands::Tasks { from, to, category } => print_tasks(from, to, category),
+        cli::Commands::GetFacts {} => print_last_week_facts(cli_args.hamster_db),
+        cli::Commands::Tasks { from, to, category } => {
+            print_tasks(cli_args.hamster_db, from, to, category)
+        }
         cli::Commands::SyncTasksToEverhour {
             api_token,
             from,
             to,
             category,
             dry_run,
-        } => sync_tasks_to_everhour(api_token, from, to, category, dry_run).await,
+        } => {
+            sync_tasks_to_everhour(cli_args.hamster_db, api_token, from, to, category, dry_run)
+                .await
+        }
         _ => {
             println!("This command is not implemented yet")
         }
     }
 }
 
-fn print_last_week_facts() {
-    let hamster_data = hamster::HamsterData::open().unwrap();
+fn print_last_week_facts(hamster_db: Option<String>) {
+    let hamster_data = hamster::HamsterData::open(hamster_db).unwrap();
     let week_start = utils::week_start(Local::now());
     let week_end = week_start.checked_add_days(Days::new(7)).unwrap();
     let facts = hamster_data.get_facts(week_start, week_end);
@@ -67,11 +72,12 @@ fn print_last_week_facts() {
 type TasksWithDurations = HashMap<Option<String>, (Option<String>, Duration)>;
 
 fn get_tasks_with_durations(
+    hamster_db: Option<String>,
     from: NaiveDate,
     to: NaiveDate,
     category: Option<String>,
 ) -> TasksWithDurations {
-    let hamster_data = hamster::HamsterData::open().unwrap();
+    let hamster_data = hamster::HamsterData::open(hamster_db).unwrap();
     let now = Local::now();
     let timezone = now.timezone();
 
@@ -123,7 +129,12 @@ fn get_tasks_with_durations(
     tasks
 }
 
-fn print_tasks(from: Option<NaiveDate>, to: Option<NaiveDate>, category: Option<String>) {
+fn print_tasks(
+    hamster_db: Option<String>,
+    from: Option<NaiveDate>,
+    to: Option<NaiveDate>,
+    category: Option<String>,
+) {
     let now = Local::now();
 
     let from = match from {
@@ -134,7 +145,7 @@ fn print_tasks(from: Option<NaiveDate>, to: Option<NaiveDate>, category: Option<
         Some(to) => to,
         None => now.checked_add_days(Days::new(1)).unwrap().date_naive(),
     };
-    let tasks = get_tasks_with_durations(from, to, category);
+    let tasks = get_tasks_with_durations(hamster_db, from, to, category);
     let mut total_duration = Duration::new(0, 0);
 
     let mut table = Table::new();
@@ -152,6 +163,7 @@ fn print_tasks(from: Option<NaiveDate>, to: Option<NaiveDate>, category: Option<
 }
 
 async fn sync_tasks_to_everhour(
+    hamster_db: Option<String>,
     api_token: String,
     from: NaiveDate,
     to: NaiveDate,
@@ -165,7 +177,7 @@ async fn sync_tasks_to_everhour(
     while day <= to {
         println!("Processing day {}", day);
         let next_day = day.checked_add_days(Days::new(1)).unwrap();
-        let tasks = get_tasks_with_durations(day, next_day, category.clone());
+        let tasks = get_tasks_with_durations(hamster_db.clone(), day, next_day, category.clone());
         let mut total_duration = Duration::new(0, 0);
         for (task_id, (task_title, duration)) in tasks.into_iter() {
             let task_id_eh = match &task_id {

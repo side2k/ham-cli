@@ -4,6 +4,10 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 pub struct Cli {
+    /// Path to Hamster database file - by default $HOME/.local/share/hamster/hamster.db
+    #[arg(long, env = "HAMCLI_DB")]
+    pub hamster_db: Option<String>,
+
     #[command(subcommand)]
     pub command: Commands,
 }
