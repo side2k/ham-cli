@@ -14,9 +14,18 @@ mod utils;
 use everhour_simple_client::client::Client as EverhourClient;
 use everhour_simple_client::time_record::TimeRecord;
 
+#[derive(Default)]
+enum RunMode {
+    #[default]
+    Normal,
+    DryRun,
+}
+
 #[tokio::main]
 async fn main() {
     let cli_args = cli::Cli::parse();
+    let mut run_mode = RunMode::default();
+
     match cli_args.command {
         cli::Commands::GetFacts {} => print_last_week_facts(cli_args.hamster_db),
         cli::Commands::Tasks { from, to, category } => {
@@ -32,7 +41,10 @@ async fn main() {
             let today = chrono::Local::now().date_naive();
             let from: NaiveDate = from.unwrap_or(today);
             let to: NaiveDate = to.unwrap_or(from.clone());
-            sync_tasks_to_everhour(cli_args.hamster_db, api_token, from, to, category, dry_run)
+            if dry_run {
+                run_mode = RunMode::DryRun;
+            }
+            sync_tasks_to_everhour(cli_args.hamster_db, api_token, from, to, category, run_mode)
                 .await
         }
         _ => {
@@ -160,7 +172,7 @@ async fn sync_tasks_to_everhour(
     from: NaiveDate,
     to: NaiveDate,
     category: Option<String>,
-    dry_run: bool,
+    run_mode: RunMode,
 ) {
     let client = EverhourClient::new(api_token);
     let me = client.get_current_user().await.unwrap();
@@ -190,13 +202,10 @@ async fn sync_tasks_to_everhour(
         for (task_id, (task_title, duration)) in tasks.into_iter() {
             let task_id_eh = match &task_id {
                 Some(task_id) => format!("as:{task_id}"),
-                None => {
-                    if dry_run {
-                        "-".to_string()
-                    } else {
-                        panic!("Missing task id!");
-                    }
-                }
+                None => match run_mode {
+                    RunMode::DryRun => "-".to_string(),
+                    RunMode::Normal => panic!("Missing task id!"),
+                },
             };
 
             total_duration += duration;
@@ -216,15 +225,15 @@ async fn sync_tasks_to_everhour(
             );
             let existing_record = records_map.get(&(day, task_id_eh.clone()));
 
-            match (existing_record, dry_run) {
-                (Some(existing_record), true) => {
+            match (existing_record, &run_mode) {
+                (Some(existing_record), RunMode::DryRun) => {
                     println!(
                         "would sync to record {} - {data_msg}",
                         existing_record.id.unwrap()
                     )
                 }
-                (None, true) => println!("would add new  record - {data_msg}"),
-                (Some(existing_record), false) => {
+                (None, RunMode::DryRun) => println!("would add new  record - {data_msg}"),
+                (Some(existing_record), RunMode::Normal) => {
                     println!(
                         "syncing to record {} - {data_msg}",
                         existing_record.id.unwrap()
@@ -237,7 +246,7 @@ async fn sync_tasks_to_everhour(
                         .await
                         .unwrap();
                 }
-                (None, false) => {
+                (None, RunMode::Normal) => {
                     println!("adding - {data_msg}");
                     client
                         .add_task_time_record(
