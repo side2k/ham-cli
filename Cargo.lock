@@ -291,7 +291,7 @@ dependencies = [
 [[package]]
 name = "everhour-simple-client"
 version = "0.1.0"
-source = "git+https://github.com/side2k/everhour-simple-client#f7f8c69eabd693f362ae9952a156e1efbb93eae9"
+source = "git+https://github.com/side2k/everhour-simple-client?rev=453b5b1#453b5b192490c08d155f63ee2b97b682a002e36a"
 dependencies = [
  "chrono",
  "reqwest",

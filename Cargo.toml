@@ -9,7 +9,7 @@ edition = "2021"
 chrono = "0.4.38"
 clap = { version = "4.5.1", features = ["derive", "env"] }
 comfy-table = "7.1.0"
-everhour-simple-client = { git = "https://github.com/side2k/everhour-simple-client", version = "0.1.0" }
+everhour-simple-client = { git = "https://github.com/side2k/everhour-simple-client", version = "0.1.0", rev = "453b5b1" }
 markdown = "1.0.0-alpha.16"
 regex = "1.10.4"
 sqlite = "0.34.0"
