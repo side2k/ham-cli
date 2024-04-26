@@ -55,7 +55,7 @@ async fn main() {
 
 fn print_last_week_facts(hamster_db: Option<String>) {
     let hamster_data = hamster::HamsterData::open(hamster_db).unwrap();
-    let week_start = utils::week_start(Local::now()).date_naive();
+    let week_start = utils::week_start(Local::now().date_naive());
     let week_end = week_start.checked_add_days(Days::new(7)).unwrap();
     let facts = hamster_data.get_facts(week_start, week_end);
     let mut table = Table::new();

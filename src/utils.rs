@@ -1,14 +1,9 @@
-use chrono::{DateTime, Datelike, Days, Local};
-use markdown::mdast::{Link, Node};
+use chrono::{Datelike, Days, NaiveDate};
+use markdown::mdast::{Link, Node, Text};
 use std::time::Duration;
 
-pub fn week_start(dt: DateTime<Local>) -> DateTime<Local> {
-    dt.checked_sub_days(Days::new(dt.weekday().num_days_from_monday() as u64))
-        .unwrap()
-        .date_naive()
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .and_local_timezone(dt.timezone())
+pub fn week_start(date: NaiveDate) -> NaiveDate {
+    date.checked_sub_days(Days::new(date.weekday().num_days_from_monday() as u64))
         .unwrap()
 }
 
