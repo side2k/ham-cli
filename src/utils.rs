@@ -63,3 +63,36 @@ impl LinkText for Link {
             })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use chrono::NaiveDate;
+
+    use crate::utils::DurationFormatting;
+
+    use super::week_start;
+
+    #[test]
+    fn week_start_works() {
+        assert_eq!(
+            week_start(NaiveDate::from_ymd_opt(2024, 04, 26).unwrap()),
+            NaiveDate::from_ymd_opt(2024, 04, 22).unwrap()
+        )
+    }
+
+    #[test]
+    fn duration_as_hhmm_works() {
+        assert_eq!(Duration::new(0, 0).as_hhmm(), String::from("0:00"));
+        assert_eq!(Duration::new(60, 0).as_hhmm(), String::from("0:01"));
+        assert_eq!(Duration::new(65, 0).as_hhmm(), String::from("0:01"));
+        assert_eq!(Duration::new(600, 0).as_hhmm(), String::from("0:10"));
+        assert_eq!(Duration::new(4000, 0).as_hhmm(), String::from("1:06"));
+        assert_eq!(Duration::new(3600 * 10, 0).as_hhmm(), String::from("10:00"));
+        assert_eq!(
+            Duration::new(3600 * 100, 1).as_hhmm(),
+            String::from("100:00")
+        );
+    }
+}
