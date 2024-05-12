@@ -35,3 +35,41 @@ impl HamsterEnrichedData for HamsterFact {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use chrono::{Local, NaiveDate, NaiveDateTime, NaiveTime, TimeDelta};
+
+    use crate::hamster::HamsterFact;
+
+    use super::HamsterEnrichedData;
+
+    #[test]
+    fn ensure_task_extracted_correctly() {
+        let timezone = Local::now().timezone();
+        let start_time = NaiveDateTime::new(
+            NaiveDate::from_ymd_opt(2024, 5, 12).unwrap(),
+            NaiveTime::from_hms_opt(10, 33, 0).unwrap(),
+        )
+        .and_local_timezone(timezone)
+        .unwrap();
+
+        let fact = HamsterFact {
+            id: 1,
+            start_time: start_time,
+            end_time: Some(start_time + TimeDelta::new(3600, 0).unwrap()),
+            description: String::from("[Some task](https://example.com/task/123456/f)"),
+            activity: String::from("running and jumping"),
+            category: String::from("Sports"),
+        };
+
+        let extracted_task = fact.task().unwrap();
+
+        assert_eq!(extracted_task.link_title, String::from("Some task"));
+        assert_eq!(
+            extracted_task.href,
+            String::from("https://example.com/task/123456/f")
+        );
+        assert_eq!(extracted_task.task_id, String::from("123456"));
+    }
+}
