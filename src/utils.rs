@@ -78,8 +78,9 @@ mod tests {
     use std::time::Duration;
 
     use chrono::NaiveDate;
+    use markdown::ParseOptions;
 
-    use crate::utils::DurationFormatting;
+    use crate::utils::{DurationFormatting, MarkdownProcessing};
 
     use super::week_start;
 
@@ -102,6 +103,31 @@ mod tests {
         assert_eq!(
             Duration::new(3600 * 100, 1).as_hhmm(),
             String::from("100:00")
+        );
+    }
+
+    #[test]
+    fn texts_extracted_correctly() {
+        let markdown = String::from(
+            "- first item\n\
+            - second item\n - item 2.1\n    - item 2.1.1\n  - item 2.2\n\
+            - item 3",
+        );
+        let root_node = markdown::to_mdast(&markdown, &ParseOptions::default()).unwrap();
+        assert_eq!(
+            root_node
+                .texts()
+                .into_iter()
+                .map(|text| text.value.clone())
+                .collect::<Vec<String>>(),
+            vec![
+                "first item",
+                "second item",
+                "item 2.1",
+                "item 2.1.1",
+                "item 2.2",
+                "item 3"
+            ]
         );
     }
 }
