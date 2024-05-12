@@ -35,6 +35,15 @@ pub trait MarkdownProcessing {
             })
             .collect()
     }
+    fn texts(&self) -> Vec<&Text> {
+        self.flatten_tree()
+            .into_iter()
+            .filter_map(|node| match node {
+                Node::Text(text) => Some(text),
+                _ => None,
+            })
+            .collect()
+    }
 }
 
 impl MarkdownProcessing for Node {
