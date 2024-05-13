@@ -1,5 +1,6 @@
 use crate::hamster::HamsterFact;
 use crate::utils::{LinkText, MarkdownProcessing};
+use markdown::mdast::Node;
 use markdown::ParseOptions;
 use regex::Regex;
 
@@ -11,6 +12,8 @@ pub struct TaskLink {
 
 pub trait HamsterEnrichedData {
     fn task(&self) -> Option<TaskLink>;
+    /// Extracts comments
+    fn comments(&self) -> Vec<String>;
 }
 
 impl HamsterEnrichedData for HamsterFact {
@@ -33,6 +36,23 @@ impl HamsterEnrichedData for HamsterFact {
                     .to_string(),
             })
         }
+    }
+
+    /// extracts comments, but with some catches
+    fn comments(&self) -> Vec<String> {
+        let markdown_root =
+            markdown::to_mdast(&self.description, &ParseOptions::default()).unwrap();
+        markdown_root
+            .children()
+            .unwrap()
+            .into_iter()
+            .filter_map(|node| match node {
+                Node::List(_) => Some(node.texts()),
+                _ => None,
+            })
+            .flatten()
+            .map(|text| text.value.clone())
+            .collect()
     }
 }
 
@@ -76,5 +96,16 @@ mod tests {
             String::from("https://example.com/task/123456/f")
         );
         assert_eq!(extracted_task.task_id, String::from("123456"));
+    }
+
+    #[test]
+    fn simple_comments_extracted_correctly() {
+        let fact = get_fact_with_descr(String::from(
+            "[Some task](https://example.com/task/123456/f)\n\
+            + some running\n\
+            - some jumping",
+        ));
+        let comments = fact.comments();
+        assert_eq!(comments, ["some running", "some jumping"]);
     }
 }
