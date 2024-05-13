@@ -108,4 +108,24 @@ mod tests {
         let comments = fact.comments();
         assert_eq!(comments, ["some running", "some jumping"]);
     }
+
+    #[test]
+    fn hierarchical_comments_extracted_correctly() {
+        let fact = get_fact_with_descr(String::from(
+            "[Some task](https://example.com/task/123456/f)\n\
+            + some running\n  + running left\n    + running left with shouting\n  - running right\n\
+            - some jumping",
+        ));
+        let comments = fact.comments();
+        assert_eq!(
+            comments,
+            [
+                "some running",
+                "running left",
+                "running left with shouting",
+                "running right",
+                "some jumping"
+            ]
+        );
+    }
 }
