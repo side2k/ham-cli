@@ -44,8 +44,7 @@ mod tests {
 
     use super::HamsterEnrichedData;
 
-    #[test]
-    fn ensure_task_extracted_correctly() {
+    fn get_fact_with_descr(description: String) -> HamsterFact {
         let timezone = Local::now().timezone();
         let start_time = NaiveDateTime::new(
             NaiveDate::from_ymd_opt(2024, 5, 12).unwrap(),
@@ -53,15 +52,21 @@ mod tests {
         )
         .and_local_timezone(timezone)
         .unwrap();
-
-        let fact = HamsterFact {
+        HamsterFact {
             id: 1,
             start_time: start_time,
             end_time: Some(start_time + TimeDelta::new(3600, 0).unwrap()),
-            description: String::from("[Some task](https://example.com/task/123456/f)"),
+            description: description,
             activity: String::from("running and jumping"),
             category: String::from("Sports"),
-        };
+        }
+    }
+
+    #[test]
+    fn ensure_task_extracted_correctly() {
+        let fact = get_fact_with_descr(String::from(
+            "[Some task](https://example.com/task/123456/f)",
+        ));
 
         let extracted_task = fact.task().unwrap();
 
