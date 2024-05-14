@@ -98,7 +98,7 @@ mod tests {
     use chrono::NaiveDate;
     use markdown::ParseOptions;
 
-    use crate::utils::{DurationFormatting, MarkdownProcessing};
+    use crate::utils::{unique_lines, DurationFormatting, MarkdownProcessing};
 
     use super::week_start;
 
@@ -147,5 +147,18 @@ mod tests {
                 "item 3"
             ]
         );
+    }
+
+    #[test]
+    fn unique_lines_works_correctly() {
+        assert_eq!(
+            unique_lines(
+                vec!["def", "def", "abc", "def", "abc", "def", "xyz", "zyx",]
+                    .into_iter()
+                    .map(|line| line.to_string())
+                    .collect()
+            ),
+            vec!["def", "abc", "xyz", "zyx"]
+        )
     }
 }
