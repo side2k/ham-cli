@@ -73,6 +73,24 @@ impl LinkText for Link {
     }
 }
 
+pub fn unique_lines(lines: Vec<String>) -> Vec<String> {
+    let mut unique = vec![];
+    let mut by_text: Vec<(usize, String)> = lines.into_iter().enumerate().collect();
+    by_text.sort_by_key(|(_, line)| line.clone());
+
+    let mut last_line = String::from("");
+
+    for (line_index, line) in by_text {
+        if line != last_line {
+            unique.push((line_index, line.clone()));
+        }
+        last_line = line;
+    }
+
+    unique.sort_by_key(|(index, _)| index.clone());
+    unique.into_iter().map(|(_, line)| line).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
