@@ -70,7 +70,11 @@ mod tests {
 
     use super::HamsterEnrichedData;
 
-    fn get_fact_with_descr(description: String) -> HamsterFact {
+    fn get_fact(
+        activity: Option<String>,
+        description: Option<String>,
+        category: Option<String>,
+    ) -> HamsterFact {
         let timezone = Local::now().timezone();
         let start_time = NaiveDateTime::new(
             NaiveDate::from_ymd_opt(2024, 5, 12).unwrap(),
@@ -82,10 +86,14 @@ mod tests {
             id: 1,
             start_time: start_time,
             end_time: Some(start_time + TimeDelta::new(3600, 0).unwrap()),
-            description: description,
-            activity: String::from("running and jumping"),
-            category: String::from("Sports"),
+            description: description.unwrap_or(String::from("default description")),
+            activity: activity.unwrap_or(String::from("running and jumping")),
+            category: category.unwrap_or(String::from("Sports")),
         }
+    }
+
+    fn get_fact_with_descr(description: String) -> HamsterFact {
+        get_fact(None, Some(description), None)
     }
 
     #[test]
