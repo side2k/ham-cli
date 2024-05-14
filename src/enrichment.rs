@@ -42,7 +42,7 @@ impl HamsterEnrichedData for HamsterFact {
     fn comments(&self) -> Vec<String> {
         let markdown_root =
             markdown::to_mdast(&self.description, &ParseOptions::default()).unwrap();
-        markdown_root
+        let comments_from_description: Vec<String> = markdown_root
             .children()
             .unwrap()
             .into_iter()
@@ -52,7 +52,13 @@ impl HamsterEnrichedData for HamsterFact {
             })
             .flatten()
             .map(|text| text.value.clone())
-            .collect()
+            .collect();
+
+        if comments_from_description.len() == 0 {
+            vec![self.activity.clone()]
+        } else {
+            comments_from_description
+        }
     }
 }
 
