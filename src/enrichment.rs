@@ -142,4 +142,25 @@ mod tests {
             ]
         );
     }
+
+    #[test]
+    fn activity_is_used_if_no_comments_found() {
+        let fact = get_fact(
+            Some(String::from("some activity")),
+            Some(String::from("just a regular description")),
+            None,
+        );
+        let comments = fact.comments();
+        assert_eq!(comments, ["some activity"]);
+
+        let fact = get_fact(
+            Some(String::from("some activity")),
+            Some(String::from(
+                "[Some task](https://example.com/task/123456/f)\n",
+            )),
+            None,
+        );
+        let comments = fact.comments();
+        assert_eq!(comments, ["some activity"]);
+    }
 }
