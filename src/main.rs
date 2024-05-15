@@ -262,7 +262,7 @@ async fn sync_tasks_to_everhour(
                                 day,
                                 me.id,
                                 task_data.duration.as_secs() as i64,
-                                None,
+                                Some(task_data.comments.join("\n")),
                             ),
                         )
                         .await
@@ -277,7 +277,7 @@ async fn sync_tasks_to_everhour(
                                 day,
                                 me.id,
                                 task_data.duration.as_secs() as i64,
-                                None,
+                                Some(task_data.comments.join("\n")),
                             ),
                         )
                         .await
