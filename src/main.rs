@@ -135,7 +135,10 @@ fn get_tasks_with_durations(
             .entry(task_id)
             .and_modify(|task_data: &mut TaskData| {
                 task_data.duration += duration;
-                task_data.comments.append(&mut comments);
+                let mut unique_comments = vec![];
+                unique_comments.append(&mut task_data.comments);
+                unique_comments.append(&mut comments);
+                task_data.comments = unique_lines(unique_comments);
             })
             .or_insert(TaskData {
                 title,
