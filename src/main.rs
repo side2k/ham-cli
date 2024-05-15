@@ -166,13 +166,14 @@ fn print_tasks(
     let mut total_duration = Duration::new(0, 0);
 
     let mut table = Table::new();
-    table.set_header(["Task ID", "name", "duration"]);
+    table.set_header(["Task ID", "name", "duration", "comments"]);
     for (task_id, task_data) in tasks.into_iter() {
         total_duration += task_data.duration;
         table.add_row([
             task_id.unwrap_or("-".to_string()),
             task_data.title.unwrap_or("-".to_string()),
             task_data.duration.as_hhmm(),
+            task_data.comments.join("\n"),
         ]);
     }
     table.add_row(["", "", total_duration.as_hhmm().as_str()]);
