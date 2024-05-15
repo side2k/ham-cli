@@ -4,6 +4,7 @@ use chrono::{DateTime, Days, Local, NaiveDate};
 use clap::Parser;
 use comfy_table::Table;
 use std::time::Duration;
+use utils::unique_lines;
 
 use crate::{enrichment::HamsterEnrichedData, utils::DurationFormatting};
 mod cli;
@@ -84,14 +85,18 @@ fn print_last_week_facts(hamster_db: Option<String>) {
     println!("{table}");
 }
 
-type TasksWithDurations = HashMap<Option<String>, (Option<String>, Duration)>;
+struct TaskData {
+    title: Option<String>,
+    duration: Duration,
+    comments: Vec<String>,
+}
 
 fn get_tasks_with_durations(
     hamster_db: Option<String>,
     from: NaiveDate,
     to: NaiveDate,
     category: Option<String>,
-) -> TasksWithDurations {
+) -> HashMap<Option<String>, TaskData> {
     let hamster_data = hamster::HamsterData::open(hamster_db).unwrap();
 
     let facts = hamster_data.get_facts(from, to);
@@ -104,11 +109,12 @@ fn get_tasks_with_durations(
             .collect(),
     };
 
-    let mut tasks: TasksWithDurations = HashMap::new();
+    let mut tasks: HashMap<Option<String>, TaskData> = HashMap::new();
 
     for record in facts {
         let end_time = record.end_time.unwrap_or_else(|| Local::now());
         let duration = (end_time - record.start_time).to_std().unwrap();
+        let mut comments = unique_lines(record.comments());
 
         let task_id: Option<String>;
         let title: Option<String>;
@@ -127,8 +133,15 @@ fn get_tasks_with_durations(
 
         tasks
             .entry(task_id)
-            .and_modify(|(_, task_duration)| *task_duration += duration)
-            .or_insert((title, duration));
+            .and_modify(|task_data: &mut TaskData| {
+                task_data.duration += duration;
+                task_data.comments.append(&mut comments);
+            })
+            .or_insert(TaskData {
+                title,
+                duration,
+                comments,
+            });
     }
     tasks
 }
@@ -154,12 +167,12 @@ fn print_tasks(
 
     let mut table = Table::new();
     table.set_header(["Task ID", "name", "duration"]);
-    for (task_id, (task_title, duration)) in tasks.into_iter() {
-        total_duration += duration;
+    for (task_id, task_data) in tasks.into_iter() {
+        total_duration += task_data.duration;
         table.add_row([
             task_id.unwrap_or("-".to_string()),
-            task_title.unwrap_or("-".to_string()),
-            duration.as_hhmm(),
+            task_data.title.unwrap_or("-".to_string()),
+            task_data.duration.as_hhmm(),
         ]);
     }
     table.add_row(["", "", total_duration.as_hhmm().as_str()]);
@@ -199,7 +212,7 @@ async fn sync_tasks_to_everhour(
         let next_day = day.checked_add_days(Days::new(1)).unwrap();
         let tasks = get_tasks_with_durations(hamster_db.clone(), day, next_day, category.clone());
         let mut total_duration = Duration::new(0, 0);
-        for (task_id, (task_title, duration)) in tasks.into_iter() {
+        for (task_id, task_data) in tasks.into_iter() {
             let task_id_eh = match &task_id {
                 Some(task_id) => format!("as:{task_id}"),
                 None => match run_mode {
@@ -208,7 +221,7 @@ async fn sync_tasks_to_everhour(
                 },
             };
 
-            total_duration += duration;
+            total_duration += task_data.duration;
 
             if task_id.is_none() {
                 // no task id - not enough data to add anything
@@ -217,11 +230,11 @@ async fn sync_tasks_to_everhour(
 
             let data_msg = format!(
                 "{day}: {} seconds ({}) for user {} on task {} ({})",
-                duration.as_secs(),
-                duration.as_hhmm(),
+                task_data.duration.as_secs(),
+                task_data.duration.as_hhmm(),
                 me.id,
                 task_id_eh,
-                task_title.unwrap_or("-".to_string())
+                task_data.title.unwrap_or("-".to_string())
             );
             let existing_record = records_map.get(&(day, task_id_eh.clone()));
 
@@ -241,7 +254,12 @@ async fn sync_tasks_to_everhour(
                     client
                         .update_task_time_record(
                             task_id_eh,
-                            TimeRecord::for_adding(day, me.id, duration.as_secs() as i64, None),
+                            TimeRecord::for_adding(
+                                day,
+                                me.id,
+                                task_data.duration.as_secs() as i64,
+                                None,
+                            ),
                         )
                         .await
                         .unwrap();
@@ -251,7 +269,12 @@ async fn sync_tasks_to_everhour(
                     client
                         .add_task_time_record(
                             task_id_eh,
-                            TimeRecord::for_adding(day, me.id, duration.as_secs() as i64, None),
+                            TimeRecord::for_adding(
+                                day,
+                                me.id,
+                                task_data.duration.as_secs() as i64,
+                                None,
+                            ),
                         )
                         .await
                         .unwrap();
