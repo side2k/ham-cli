@@ -120,14 +120,17 @@ fn get_tasks_with_durations(
         let title: Option<String>;
 
         if let Some(task_link) = record.task() {
-            task_id = Some(task_link.task_id);
+            task_id = task_link.task_id;
             title = Some(task_link.link_title);
         } else {
             task_id = None;
             title = None;
-            println!(
-                "Error obtaining task id from fact {} ({}@{} - {})",
-                record.id, record.activity, record.category, record.description
+        }
+
+        if task_id == None {
+            panic!(
+                "Error obtaining task id from fact {} ('{}' at {})",
+                record.id, record.activity, record.start_time
             )
         }
 
@@ -221,7 +224,11 @@ async fn sync_tasks_to_everhour(
                 Some(task_id) => format!("as:{task_id}"),
                 None => match run_mode {
                     RunMode::DryRun => "-".to_string(),
-                    RunMode::Normal => panic!("Missing task id!"),
+                    RunMode::Normal => panic!(
+                        "Missing task id! ({}, '{}')",
+                        task_data.duration.as_hhmm(),
+                        task_data.title.unwrap_or("-".to_string())
+                    ),
                 },
             };
 

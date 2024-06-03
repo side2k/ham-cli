@@ -7,7 +7,7 @@ use regex::Regex;
 pub struct TaskLink {
     pub link_title: String,
     pub href: String,
-    pub task_id: String,
+    pub task_id: Option<String>,
 }
 
 pub trait HamsterEnrichedData {
@@ -26,14 +26,18 @@ impl HamsterEnrichedData for HamsterFact {
             None
         } else {
             let link = links[0];
+            let matched_id = Regex::new(r"\/(?<task_id>\d+)\/f")
+                .unwrap()
+                .captures(link.url.as_str());
+            let task_id = match matched_id {
+                Some(captures) => Some(captures["task_id"].to_string()),
+                None => None,
+            };
+
             Some(TaskLink {
                 link_title: link.text(),
                 href: link.url.clone(),
-                task_id: Regex::new(r"\/(?<task_id>\d+)\/f")
-                    .unwrap()
-                    .captures(link.url.as_str())
-                    .unwrap()["task_id"]
-                    .to_string(),
+                task_id,
             })
         }
     }
@@ -109,7 +113,7 @@ mod tests {
             extracted_task.href,
             String::from("https://example.com/task/123456/f")
         );
-        assert_eq!(extracted_task.task_id, String::from("123456"));
+        assert_eq!(extracted_task.task_id, Some(String::from("123456")));
     }
 
     #[test]
