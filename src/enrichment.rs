@@ -16,23 +16,43 @@ pub trait HamsterEnrichedData {
     fn comments(&self) -> Vec<String>;
 }
 
+fn extract_asana_task_id(haystack: &str) -> Option<String> {
+    let matched_id = Regex::new(r"\/(?<task_id>\d+)\/f")
+        .unwrap()
+        .captures(haystack);
+    match matched_id {
+        Some(captures) => Some(captures["task_id"].to_string()),
+        None => None,
+    }
+}
+fn extract_shtab_task_id(haystack: &str) -> Option<String> {
+    let matched_id = Regex::new(r"\/\d+/task/(?<task_id>\d+)")
+        .unwrap()
+        .captures(haystack);
+    match matched_id {
+        Some(captures) => Some(captures["task_id"].to_string()),
+        None => None,
+    }
+}
+
 impl HamsterEnrichedData for HamsterFact {
     fn task(&self) -> Option<TaskLink> {
         let markdown_root =
             markdown::to_mdast(&self.description, &ParseOptions::default()).unwrap();
         let links = markdown_root.links();
+        let extractors = vec![extract_shtab_task_id, extract_asana_task_id];
 
         if links.is_empty() {
             None
         } else {
             let link = links[0];
-            let matched_id = Regex::new(r"\/(?<task_id>\d+)\/f")
-                .unwrap()
-                .captures(link.url.as_str());
-            let task_id = match matched_id {
-                Some(captures) => Some(captures["task_id"].to_string()),
-                None => None,
-            };
+            let mut task_id: Option<String> = None;
+            for extractor in extractors.into_iter() {
+                task_id = extractor(link.url.as_str());
+                if task_id != None {
+                    break;
+                }
+            }
 
             Some(TaskLink {
                 link_title: link.text(),
