@@ -38,4 +38,19 @@ pub enum Commands {
         #[arg(long, default_value_t = false)]
         dry_run: bool,
     },
+
+    #[command(name = "sync-sh")]
+    SyncTasksToShtab {
+        category: Option<String>,
+        #[arg(long, env = "HAMCLI_SHTAB_TOKEN")]
+        api_token: String,
+        #[arg(long, env = "HAMCLI_SHTAB_ACTIVITY")]
+        activity_id: i64,
+        #[arg(long)]
+        from: Option<NaiveDate>,
+        #[arg(long)]
+        to: Option<NaiveDate>,
+        #[arg(long, default_value_t = false)]
+        dry_run: bool,
+    },
 }
