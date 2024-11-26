@@ -380,7 +380,7 @@ async fn sync_tasks_to_shtab(
             );
 
             match &run_mode {
-                RunMode::DryRun => println!("would add new  record - {data_msg}"),
+                RunMode::DryRun => println!("would add a new record - {data_msg}"),
                 RunMode::Normal => {
                     println!("adding - {data_msg}");
                     let from = last_time;
