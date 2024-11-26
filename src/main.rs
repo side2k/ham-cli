@@ -14,6 +14,7 @@ mod utils;
 
 use everhour_simple_client::client::Client as EverhourClient;
 use everhour_simple_client::time_record::TimeRecord;
+use shtab_simple_client::client::Client as ShtabClient;
 
 #[derive(Default)]
 enum RunMode {
@@ -47,6 +48,31 @@ async fn main() {
             }
             sync_tasks_to_everhour(cli_args.hamster_db, api_token, from, to, category, run_mode)
                 .await
+        }
+        cli::Commands::SyncTasksToShtab {
+            api_token,
+            activity_id,
+            from,
+            to,
+            category,
+            dry_run,
+        } => {
+            let today = chrono::Local::now().date_naive();
+            let from: NaiveDate = from.unwrap_or(today);
+            let to: NaiveDate = to.unwrap_or(from.clone());
+            if dry_run {
+                run_mode = RunMode::DryRun;
+            }
+            sync_tasks_to_shtab(
+                cli_args.hamster_db,
+                api_token,
+                activity_id,
+                from,
+                to,
+                category,
+                run_mode,
+            )
+            .await
         }
         _ => {
             println!("This command is not implemented yet")
@@ -302,4 +328,79 @@ async fn sync_tasks_to_everhour(
         day = next_day;
     }
     println!("Everhour user id: {}", me.id);
+}
+
+async fn sync_tasks_to_shtab(
+    hamster_db: Option<String>,
+    api_token: String,
+    activity_id: i64,
+    from: NaiveDate,
+    to: NaiveDate,
+    category: Option<String>,
+    run_mode: RunMode,
+) {
+    let client = ShtabClient::new(Some(api_token));
+    let me = client.get_profile().await.unwrap();
+
+    let local_tz = Local::now().timezone();
+
+    let mut day = from;
+    while day <= to {
+        println!("Processing day {}", day);
+        let next_day = day.checked_add_days(Days::new(1)).unwrap();
+        let tasks = get_tasks_with_durations(hamster_db.clone(), day, next_day, category.clone());
+        let mut total_duration = Duration::new(0, 0);
+        let mut last_time = day
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_local_timezone(local_tz)
+            .unwrap();
+        for (task_id, task_data) in tasks.into_iter() {
+            let task_id: i64 = match task_id {
+                Some(task_id) => task_id.parse::<i64>().unwrap(),
+                None => match run_mode {
+                    RunMode::DryRun => -1,
+                    RunMode::Normal => panic!(
+                        "Missing task id! ({}, '{}')",
+                        task_data.duration.as_hhmm(),
+                        task_data.title.unwrap_or("-".to_string())
+                    ),
+                },
+            };
+
+            total_duration += task_data.duration;
+
+            let data_msg = format!(
+                "{day}: {} seconds ({}) for user {} on task {} ({})",
+                task_data.duration.as_secs(),
+                task_data.duration.as_hhmm(),
+                me.id,
+                task_id,
+                task_data.title.unwrap_or("-".to_string())
+            );
+
+            match &run_mode {
+                RunMode::DryRun => println!("would add a new record - {data_msg}"),
+                RunMode::Normal => {
+                    println!("adding - {data_msg}");
+                    let from = last_time;
+                    let to = from + task_data.duration;
+                    client
+                        .activity_work_time(activity_id, me.id, task_id, from, to)
+                        .await
+                        .unwrap();
+                    last_time = to;
+                }
+            };
+        }
+
+        println!(
+            "Total seconds for day: {} ({})",
+            total_duration.as_secs(),
+            total_duration.as_hhmm()
+        );
+
+        day = next_day;
+    }
+    println!("user id: {}", me.id);
 }
