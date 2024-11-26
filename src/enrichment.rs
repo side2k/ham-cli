@@ -45,14 +45,11 @@ impl HamsterEnrichedData for HamsterFact {
         if links.is_empty() {
             None
         } else {
-            let link = links[0];
-            let mut task_id: Option<String> = None;
-            for extractor in extractors.into_iter() {
-                task_id = extractor(link.url.as_str());
-                if task_id != None {
-                    break;
-                }
-            }
+            let link = links.first()?;
+
+            let task_id = extractors
+                .into_iter()
+                .find_map(|extractor| extractor(link.url.as_str()));
 
             Some(TaskLink {
                 link_title: link.text(),
