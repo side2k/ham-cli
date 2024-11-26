@@ -66,7 +66,7 @@ async fn main() {
             sync_tasks_to_shtab(
                 cli_args.hamster_db,
                 api_token,
-                Some(activity_id),
+                activity_id,
                 from,
                 to,
                 category,
@@ -333,7 +333,7 @@ async fn sync_tasks_to_everhour(
 async fn sync_tasks_to_shtab(
     hamster_db: Option<String>,
     api_token: String,
-    activity_id: Option<i64>,
+    activity_id: i64,
     from: NaiveDate,
     to: NaiveDate,
     category: Option<String>,
@@ -341,15 +341,6 @@ async fn sync_tasks_to_shtab(
 ) {
     let client = ShtabClient::new(Some(api_token));
     let me = client.get_profile().await.unwrap();
-
-    let activity_id:i64 = match activity_id {
-        Some(activity_id) => activity_id,
-        None => match std::env::var("HAMCLI_SHTAB_ACTIVITY") {
-            Ok(activity_id_str) => activity_id_str.parse::<i64>().unwrap(),
-            Err(_) => panic!(
-                "Please specify activity id via --activity-id option or HAMCLI_SHTAB_ACTIVITY env var")
-        }
-    };
 
     let local_tz = Local::now().timezone();
 
